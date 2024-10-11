@@ -1,0 +1,51 @@
+char* resize_output(char* s, size_t s_id) {
+    char* p = realloc(s, (s_id + 1) * sizeof(char));
+    if (!p) {
+        printf("Memory reallocation failed\n");
+        free(s);
+        return NULL;
+    }
+    return p;
+}
+
+char* add_spaces(char* expr) {
+    size_t len = strlen(expr);
+    size_t capacity = 2 * len + 1;
+    char* s = malloc(capacity * sizeof(char));
+    if (!s) {
+        printf("Memory allocation failed\n");
+        return NULL;
+    }
+    size_t s_id = 0;
+    int prev = 0; // 0: start, 1: digit, 2: operator, 3: space
+
+    for (size_t i = 0; i < len; i++) {
+        if (expr[i] == ' ') {
+            s[s_id++] = expr[i];
+            prev = 3;
+        } else if (isop(expr[i])) {
+            if (prev == 1 || prev == 2) {
+                s[s_id++] = ' ';
+            }
+            s[s_id++] = expr[i];
+            prev = 2;
+        } else if (isdig(expr[i])) {
+            if (prev == 2) {
+                s[s_id++] = ' ';
+            }
+            s[s_id++] = expr[i];
+            prev = 1;
+        } else {
+            printf("INVALID CHAR: %c\n", expr[i]);
+            free(s);
+            return NULL;
+        }
+    }
+    s[s_id] = '\0';
+
+    if (s_id + 1 < capacity) {
+        s = resize_output(s, s_id);
+        if (!s) return NULL;
+    }
+    return s;
+}
