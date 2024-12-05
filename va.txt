@@ -1,0 +1,90 @@
+SELECT 
+    id, 
+    filename, 
+    CASE
+        WHEN decrypted THEN 'File was successfully decrypted.'
+        WHEN parent_id IS NOT NULL AND 
+             (SELECT decrypted FROM dtf.madelines_files_results WHERE id = parent_id) THEN
+            'File was successfully decrypted because its containing folder was successfully decrypted.'
+        ELSE 'File remains encrypted.'
+    END AS decryption_status
+FROM dtf.madelines_files_results
+ORDER BY id;
+
+-------- 
+
+
+WITH averages AS (
+    SELECT
+        AVG(size) FILTER (WHERE decrypted) AS avg_decrypted_size,
+        AVG(size) FILTER (WHERE NOT decrypted) AS avg_encrypted_size
+    FROM dtf.madelines_files_results
+    WHERE parent_id IS NOT NULL
+),
+calculated_sizes AS (
+    SELECT
+        id,
+        size AS stored_size,
+        decrypted,
+        COALESCE(
+            size,
+            CASE
+                WHEN decrypted THEN (SELECT avg_decrypted_size FROM averages)
+                ELSE (SELECT avg_encrypted_size FROM averages)
+            END
+        )::bigint AS calculated_size
+    FROM dtf.madelines_files_results
+    WHERE parent_id IS NOT NULL
+)
+SELECT *
+FROM calculated_sizes
+ORDER BY id;
+
+
+-----
+SELECT
+    filename,
+    LEAST(
+        COALESCE(rsa_time, 1e10), 
+        COALESCE(hyper_pulse_time, 1e10),
+        COALESCE(quantum_x_time, 1e10),
+        COALESCE(aes_time, 1e10),
+        COALESCE(d_crypt_time, 1e10)
+    ) AS best_time,
+    GREATEST(
+        COALESCE(rsa_time, -1e10), 
+        COALESCE(hyper_pulse_time, -1e10),
+        COALESCE(quantum_x_time, -1e10),
+        COALESCE(aes_time, -1e10),
+        COALESCE(d_crypt_time, -1e10)
+    ) AS worst_time
+FROM dtf.madelines_files_results
+ORDER BY filename;
+
+----
+
+WITH worst_times AS (
+    SELECT
+        MAX(COALESCE(rsa_time, 0)) AS max_rsa_time,
+        MAX(COALESCE(hyper_pulse_time, 0)) AS max_hyper_pulse_time,
+        MAX(COALESCE(quantum_x_time, 0)) AS max_quantum_x_time,
+        MAX(COALESCE(aes_time, 0)) AS max_aes_time,
+        MAX(COALESCE(d_crypt_time, 0)) AS max_d_crypt_time
+    FROM dtf.madelines_files_results
+),
+adjusted_times AS (
+    SELECT
+        COALESCE(NULLIF(rsa_time, 0), (SELECT max_rsa_time FROM worst_times)) AS adjusted_rsa_time,
+        COALESCE(NULLIF(hyper_pulse_time, 0), (SELECT max_hyper_pulse_time FROM worst_times)) AS adjusted_hyper_pulse_time,
+        COALESCE(NULLIF(quantum_x_time, 0), (SELECT max_quantum_x_time FROM worst_times)) AS adjusted_quantum_x_time,
+        COALESCE(NULLIF(aes_time, 0), (SELECT max_aes_time FROM worst_times)) AS adjusted_aes_time,
+        COALESCE(NULLIF(d_crypt_time, 0), (SELECT max_d_crypt_time FROM worst_times)) AS adjusted_d_crypt_time
+    FROM dtf.madelines_files_results
+)
+SELECT
+    ROUND(AVG(adjusted_rsa_time), 2) AS avg_rsa_time,
+    ROUND(AVG(adjusted_hyper_pulse_time), 2) AS avg_hyper_pulse_time,
+    ROUND(AVG(adjusted_quantum_x_time), 2) AS avg_quantum_x_time,
+    ROUND(AVG(adjusted_aes_time), 2) AS avg_aes_time,
+    ROUND(AVG(adjusted_d_crypt_time), 2) AS avg_d_crypt_time
+FROM adjusted_times;
