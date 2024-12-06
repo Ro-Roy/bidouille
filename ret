@@ -1,0 +1,5 @@
+SELECT on_case AS investigating_id, COUNT(*) AS report_count
+FROM investigation.mirrored_reports
+GROUP BY on_case
+ORDER BY report_count DESC
+LIMIT 1;
