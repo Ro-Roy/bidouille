@@ -1,0 +1,31 @@
+ *command) {
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        // Erreur lors de la création du processus
+        perror("fork");
+        return -1;
+    }
+
+    if (pid == 0) {
+        // Code du processus enfant
+        execl("/bin/sh", "sh", "-c", command, (char *)NULL);
+        // Si execl échoue
+        perror("execl");
+        exit(EXIT_FAILURE);
+    } else {
+        // Code du processus parent
+        int status;
+        if (waitpid(pid, &status, 0) == -1) {
+            perror("waitpid");
+            return -1;
+        }
+        // Vérifier si le processus enfant s'est terminé correctement
+        if (WIFEXITED(status)) {
+            return WEXITSTATUS(status); // Retourne le code de sortie de la commande
+        } else {
+            return -1; // Indique que le processus enfant n'a pas terminé correctement
+        }
+    }
+}
+
