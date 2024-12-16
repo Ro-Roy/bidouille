@@ -1,0 +1,113 @@
+
+# --- Routeur Clover Corp Configuration ---
+# Nom du fichier : clover-corp-router-config.sh
+
+#!/bin/bash
+
+# --- Configuration des interfaces ---
+ip addr add 198.51.100.123/29 dev eth0
+ip link set eth0 up
+ip addr add 10.101.50.1/24 dev eth1
+ip link set eth1 up
+ip addr add 10.102.10.1/24 dev eth2
+ip link set eth2 up
+
+# --- Activer le routage IP ---
+echo 1 > /proc/sys/net/ipv4/ip_forward
+
+# --- Configuration du pare-feu (iptables) ---
+iptables -A INPUT -p icmp -j ACCEPT
+iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+iptables -A INPUT -j DROP
+iptables -A OUTPUT -j ACCEPT
+iptables -A FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -o eth0 -j ACCEPT
+iptables -A FORWARD -p tcp --dport 80 -d 10.101.50.0/24 -j ACCEPT
+iptables -A FORWARD -s 10.101.50.0/24 -d 10.102.10.0/24 -j DROP
+iptables -P FORWARD DROP
+
+# --- Configuration NAT ---
+iptables -t nat -A POSTROUTING -o eth0 -j SNAT --to-source 198.51.100.123
+iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 80 -j DNAT --to-destination 10.101.50.10
+
+# --- Serveur DHCP pour les postes de travail ---
+apt-get install -y isc-dhcp-server
+cat <<EOF > /etc/dhcp/dhcpd.conf
+subnet 10.102.10.0 netmask 255.255.255.0 {
+    range 10.102.10.100 10.102.10.200;
+    option routers 10.102.10.1;
+    option domain-name-servers 8.8.8.8, 8.8.4.4;
+    default-lease-time 600;
+    max-lease-time 7200;
+}
+EOF
+systemctl restart isc-dhcp-server
+
+
+# --- Serveur Web srv-website Configuration ---
+# Nom du fichier : srv-website-config.sh
+
+#!/bin/bash
+
+# --- Configuration réseau ---
+ip addr add 10.101.50.10/24 dev eth0
+ip link set eth0 up
+ip route add default via 10.101.50.1
+
+# --- Installation et démarrage du serveur web ---
+apt-get update
+apt-get install -y apache2
+systemctl start apache2
+systemctl enable apache2
+
+
+# --- Serveur Applicatif srv-app Configuration ---
+# Nom du fichier : srv-app-config.sh
+
+#!/bin/bash
+
+# --- Configuration réseau ---
+ip addr add 10.101.50.20/24 dev eth0
+ip link set eth0 up
+ip route add default via 10.101.50.1
+
+# --- Configuration des services applicatifs ---
+apt-get update
+apt-get install -y python3 python3-pip
+pip3 install flask
+cat <<EOF > /srv/app.py
+from flask import Flask
+app = Flask(__name__)
+@app.route('/')
+def home():
+    return "Hello from srv-app!"
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
+EOF
+nohup python3 /srv/app.py &
+
+
+# --- Poste de Travail 1 workstation-1 Configuration ---
+# Nom du fichier : workstation-1-config.sh
+
+#!/bin/bash
+
+# --- Configuration réseau ---
+dhclient eth0
+
+# --- Vérifications ---
+ping -c 4 10.102.10.1
+curl http://10.101.50.10
+
+
+# --- Poste de Travail 2 workstation-2 Configuration ---
+# Nom du fichier : workstation-2-config.sh
+
+#!/bin/bash
+
+# --- Configuration réseau ---
+dhclient eth0
+
+# --- Vérifications ---
+ping -c 4 10.102.10.1
+curl http://10.101.50.10
