@@ -14,26 +14,37 @@ CREATE TABLE dtf.madelines_contacts (
 );
 
 ------ 2
-
--- Insert cleaned and formatted data
+-- Populate dtf.madelines_contacts with cleaned and formatted data
 INSERT INTO dtf.madelines_contacts (id, title, first_name, last_name, phone, favorite, created_at)
 SELECT 
     id,
+    -- Extract and cast title (prefix)
     CASE 
-        WHEN full_name ILIKE 'mrs %' THEN 'MRS'
-        WHEN full_name ILIKE 'ms %' THEN 'MS'
-        WHEN full_name ILIKE 'mr %' THEN 'MR'
-        WHEN full_name ILIKE 'dr %' THEN 'DR'
-        ELSE 'MR'
+        WHEN full_name ILIKE 'mrs %' THEN 'MRS'::public.prefix
+        WHEN full_name ILIKE 'ms %' THEN 'MS'::public.prefix
+        WHEN full_name ILIKE 'mr %' THEN 'MR'::public.prefix
+        WHEN full_name ILIKE 'dr %' THEN 'DR'::public.prefix
+        ELSE NULL
     END AS title,
+    -- Extract and format first_name
     INITCAP(SPLIT_PART(SPLIT_PART(full_name, ' ', 2), ' ', 1)) AS first_name,
+    -- Extract and format last_name
     INITCAP(SPLIT_PART(SPLIT_PART(full_name, ' ', 3), ' ', 1)) AS last_name,
-    REPLACE(REPLACE(phone, '-', '.'), '.', '.') AS phone,
-    favorite = '1',
+    -- Clean and format phone numbers
+    REGEXP_REPLACE(
+        LPAD(REGEXP_REPLACE(phone, '[^\d]', '', 'g'), 9, '0'), -- Remove non-digits, pad with zeros
+        '(\d{3})(\d{3})(\d{3})', '\1.\2.\3'
+    ) AS phone,
+    -- Convert favorite to boolean
+    (favorite = '1') AS favorite,
+    -- Convert created_at to timestamp
     TO_TIMESTAMP(created_at, 'YYYY-MM-DD HH24:MI:SS') AS created_at
 FROM dtf.madelines_contacts_corrupted
-WHERE full_name ~* '^[a-zA-Z\s]+$' 
-  AND phone ~ '^\d{3}[\.\-]?\d{3}[\.\-]?\d{3}$';
+WHERE 
+    -- Ensure full_name contains only ASCII letters and spaces
+    full_name ~* '^[a-zA-Z\s]+$' 
+    -- Ensure phone numbers are valid
+    AND phone ~ '^\d{3}[\.\-]?\d{3}[\.\-]?\d{3}$';
 
 ----- 3
 
