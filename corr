@@ -1,0 +1,42 @@
+-- Create the enum for title
+CREATE TYPE public.prefix AS ENUM ('MRS', 'MS', 'MR', 'DR');
+
+-- Create the table
+CREATE TABLE dtf.madelines_contacts (
+    id INTEGER PRIMARY KEY,
+    title public.prefix NOT NULL,
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    email TEXT,
+    favorite BOOLEAN NOT NULL,
+    created_at TIMESTAMP NOT NULL
+);
+
+------ 2
+
+-- Insert cleaned and formatted data
+INSERT INTO dtf.madelines_contacts (id, title, first_name, last_name, phone, favorite, created_at)
+SELECT 
+    id,
+    CASE 
+        WHEN full_name ILIKE 'mrs %' THEN 'MRS'
+        WHEN full_name ILIKE 'ms %' THEN 'MS'
+        WHEN full_name ILIKE 'mr %' THEN 'MR'
+        WHEN full_name ILIKE 'dr %' THEN 'DR'
+        ELSE 'MR'
+    END AS title,
+    INITCAP(SPLIT_PART(SPLIT_PART(full_name, ' ', 2), ' ', 1)) AS first_name,
+    INITCAP(SPLIT_PART(SPLIT_PART(full_name, ' ', 3), ' ', 1)) AS last_name,
+    REPLACE(REPLACE(phone, '-', '.'), '.', '.') AS phone,
+    favorite = '1',
+    TO_TIMESTAMP(created_at, 'YYYY-MM-DD HH24:MI:SS') AS created_at
+FROM dtf.madelines_contacts_corrupted
+WHERE full_name ~* '^[a-zA-Z\s]+$' 
+  AND phone ~ '^\d{3}[\.\-]?\d{3}[\.\-]?\d{3}$';
+
+----- 3
+
+-- Update the email column with reconstructed emails
+UPDATE dtf.madelines_contacts
+SET email = LOWER(first_name || '.' || last_name || '@roger_roger.com');
