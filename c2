@@ -1,0 +1,108 @@
+-- req02.sql
+
+-- 1) Populate dtf.madelines_contacts with cleaned and formatted data
+INSERT INTO dtf.madelines_contacts (
+    id,
+    title,
+    first_name,
+    last_name,
+    phone,
+    favorite,
+    created_at
+)
+SELECT
+    -- Unique row identifier
+    id,
+
+    -------------------------------------------------------------------------
+    -- 2) Extract and cast the title (prefix) from the full_name column
+    -------------------------------------------------------------------------
+    CASE
+        WHEN full_name ILIKE 'mrs %' THEN 'MRS'::public.prefix
+        WHEN full_name ILIKE 'ms %'  THEN 'MS'::public.prefix
+        WHEN full_name ILIKE 'mr %'  THEN 'MR'::public.prefix
+        WHEN full_name ILIKE 'dr %'  THEN 'DR'::public.prefix
+        ELSE NULL
+    END AS title,
+
+    -------------------------------------------------------------------------
+    -- 3) Extract first_name and last_name, properly capitalized
+    --    - If the full_name starts with MRS, MS, MR, or DR, then the 
+    --      first name is in position 2 and the last name is in position 3.
+    --    - Otherwise, assume the first name is position 1 and last name is 2.
+    -------------------------------------------------------------------------
+    INITCAP(
+        SPLIT_PART(
+            full_name, 
+            ' ',
+            CASE
+                WHEN full_name ILIKE 'mrs %'
+                     OR full_name ILIKE 'ms %'
+                     OR full_name ILIKE 'mr %'
+                     OR full_name ILIKE 'dr %'
+                THEN 2
+                ELSE 1
+            END
+        )
+    ) AS first_name,
+    INITCAP(
+        SPLIT_PART(
+            full_name, 
+            ' ',
+            CASE
+                WHEN full_name ILIKE 'mrs %'
+                     OR full_name ILIKE 'ms %'
+                     OR full_name ILIKE 'mr %'
+                     OR full_name ILIKE 'dr %'
+                THEN 3
+                ELSE 2
+            END
+        )
+    ) AS last_name,
+
+    -------------------------------------------------------------------------
+    -- 4) Clean and format phone numbers
+    --    - Remove all non-digits
+    --    - Left pad to ensure we have 9 digits
+    --    - Format to xxx.xxx.xxx
+    -------------------------------------------------------------------------
+    REGEXP_REPLACE(
+        LPAD(
+            REGEXP_REPLACE(phone, '[^0-9]', '', 'g'),  -- keep only digits
+            9,                                        -- pad up to 9 digits
+            '0'
+        ),
+        '(\d{3})(\d{3})(\d{3})',                      -- group 3-3-3
+        '\\1.\\2.\\3'                                -- replace with xxx.xxx.xxx
+    ) AS phone,
+
+    -------------------------------------------------------------------------
+    -- 5) Convert favorite from '1'/'0' (text) to boolean
+    -------------------------------------------------------------------------
+    (favorite = '1') AS favorite,
+
+    -------------------------------------------------------------------------
+    -- 6) Convert created_at from text to a valid timestamp
+    -------------------------------------------------------------------------
+    TO_TIMESTAMP(created_at, 'YYYY-MM-DD HH24:MI:SS') AS created_at
+
+FROM dtf.madelines_contacts_corrupted
+
+--------------------------------------------------------------------------
+-- 7) FILTERING INVALID ROWS
+--    - Only include rows where:
+--      a) full_name contains valid ASCII letters and spaces
+--      b) phone can be cleaned to 9 digits
+--      c) created_at is a properly formatted datetime
+--------------------------------------------------------------------------
+WHERE
+    -- Ensure full_name contains only ASCII letters/spaces
+    full_name ~* '^[A-Za-z ]+$'
+
+    -- Ensure that, once non-digit characters are stripped out,
+    -- the phone is exactly 9 digits
+    AND REGEXP_REPLACE(phone, '[^0-9]', '', 'g') ~ '^[0-9]{9}$'
+
+    -- Ensure created_at has a recognizable 'YYYY-MM-DD HH24:MI:SS' pattern
+    -- (If your data can have different formats or potential nulls, adjust accordingly)
+    AND created_at ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$';
