@@ -1,0 +1,101 @@
+package fr.epita.assistants;
+
+import fr.epita.assistants.utils.StringInfo;
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Outgoing;
+import jakarta.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class StringInfoProcessor {
+
+    private static int countVowels(String str) {
+        int count = 0;
+        for (char c : str.toCharArray()) {
+            if ("aeiouyAEIOUY".indexOf(c) != -1) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static int countConsonants(String str) {
+        int count = 0;
+        for (char c : str.toCharArray()) {
+            if (Character.isLetter(c) && "aeiouyAEIOUY".indexOf(c) == -1) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static boolean isPalindrome(String s) {
+        int left = 0, right = s.length() - 1;
+        while (left < right) {
+            if (s.charAt(left) != s.charAt(right)) {
+                return false;
+            }
+            left++;
+            right--;
+        }
+        return true;
+    }
+
+    @Incoming("string-info-command")
+    @Outgoing("string-info-aggregate")
+    public StringInfo process(String s) {
+        return new StringInfo(
+                s,
+                countVowels(s),
+                countConsonants(s),
+                isPalindrome(s)
+        );
+    }
+}
+
+
+------
+
+package fr.epita.assistants;
+
+import io.smallrye.reactive.messaging.annotations.Broadcast;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
+import jakarta.enterprise.context.ApplicationScoped;
+
+@Path("/send")
+@ApplicationScoped
+public class StringInfoResource {
+
+    @Inject
+    @Channel("string-info-command")
+    @Broadcast
+    Emitter<String> stringEmitter;
+
+    @POST
+    @Consumes(MediaType.TEXT_PLAIN)
+    public void send(String s) {
+        stringEmitter.send(s);
+    }
+}
+
+-----
+
+package fr.epita.assistants;
+
+import fr.epita.assistants.utils.StringInfo;
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+import jakarta.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class StringInfoSubscriber {
+
+    @Incoming("string-info-aggregate")
+    public void receive(StringInfo si) {
+        System.out.println(si.toString());
+    }
+}
