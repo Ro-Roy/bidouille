@@ -1,0 +1,44 @@
+void ChoiceRunnerImpl::process_input()
+{
+    // 1) Read one line
+    std::string line;
+    if (!std::getline(is_, line)) {
+        throw RunnerInterrupt("Input stream error.");
+    }
+
+    // 2) Convert to integer, disallow extra characters
+    int choiceIndex = 0;
+    try {
+        size_t pos = 0; 
+        choiceIndex = std::stoi(line, &pos);
+
+        // If pos < line.size(), it means there were leftover characters
+        // e.g. "1 toto" => pos would end after "1", leaving " toto"
+        if (pos < line.size()) {
+            throw RunnerInterrupt("Please input a valid integer (no extra text).");
+        }
+    } catch (...) {
+        throw RunnerInterrupt("Please input a valid number.");
+    }
+
+    // 3) Validate the choice
+    const auto* current = story_->get_current();
+    if (!current) {
+        throw RunnerInterrupt("No current node available!");
+    }
+
+    auto choices = current->list_choices(false);
+    if (choiceIndex < 1 || choiceIndex > static_cast<int>(choices.size())) {
+        std::ostringstream oss;
+        oss << "Please input an integer between 1 and " << choices.size();
+        throw RunnerInterrupt(oss.str());
+    }
+
+    // 4) Move to the chosen node
+    const auto* nextNode = current->get_choice(choiceIndex - 1);
+    if (!nextNode) {
+        throw RunnerInterrupt("Invalid choice index. (No such node?)");
+    }
+
+    story_->set_current(nextNode);
+}
