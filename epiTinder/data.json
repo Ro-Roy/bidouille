@@ -1,0 +1,118 @@
+{
+    "users": [
+        {
+            "id": 0,
+            "name": "Puff",
+            "age": 2,
+            "description": "I like everyone who does javascript (I'm the mascot of the workshop)"
+        },
+        {
+            "id": 1,
+            "name": "Bubble",
+            "age": 1,
+            "description": "I'm the real javascript mascot but don't tell puff he'll cry again"
+        },
+        {
+            "id": 2,
+            "name": "Maxime Buisson",
+            "age": 40,
+            "description": "I already have my other half but I want to make friends."
+        },
+        {
+            "id": 3,
+            "name": "Dorian Penso",
+            "age": 25,
+            "description": "Gym enthusiast by day, code lover by night, seeking a partner to write code and lift weights together."
+        },
+        {
+            "id": 4,
+            "name": "Pierre-Alexis Valbrun",
+            "age": 32,
+            "description": "I'm a full-stack developer, I can handle both your front-end and back-end."
+        },
+        {
+            "id": 5,
+            "name": "Paul Genillon",
+            "age": 26,
+            "description": "It’s not humid.. it’s raining"
+        },
+        {
+            "id": 6,
+            "name": "Botumrath Morchoisne",
+            "age": 24,
+            "description": "What am I doing here??"
+        },
+        {
+            "id": 7,
+            "name": "Pierre Santamaria",
+            "age": 22,
+            "description": "I'll love you like I love JavaScript, I won't get anything you tell me but it'll be passionate."
+        },
+        {
+            "id": 8,
+            "name": "Baptiste Schaudel",
+            "age": 9,
+            "description": "I am operational to manage my team, I will let you discover if I am too with love."
+        },
+        {
+            "id": 9,
+            "name": "Maxim Payeur",
+            "age": 8,
+            "description": "I lost my e, can you help me find it."
+        },
+        {
+            "id": 10,
+            "name": "Vinh-Toan Phan",
+            "age": 17,
+            "description": "I'm an excelent cooker, do you want to be my cookware."
+        },
+        {
+            "id": 11,
+            "name": "Angelina Kuntz",
+            "age": 44,
+            "description": "You can call me Ada"
+        },
+        {
+            "id": 12,
+            "name": "Ewan Lemonnier",
+            "age": 19,
+            "description": "Barely legal"
+        },
+        {
+          "id": 13,
+          "name": "Anaïs Druelle",
+          "age": 21,
+          "description": "What's the only part of a vegetable you can't eat?"  
+        },
+        {
+            "id": 14,
+            "name": "Mathéo Romé",
+            "age": 22,
+            "description": "I can’t sing but I will charm you anyway"
+        },
+        {
+            "id": 15,
+            "name": "Noé Bauvineau",
+            "age": 58,
+            "description": "Searching for someone who can appreciate the elegance of a well-designed API."
+        },
+        {
+            "id": 16,
+            "name": "Vincent Thirouin",
+            "age": 39,
+            "description": "I may not be able to dance, but I can sure write some smooth code."
+        },
+        {
+            "id": 17,
+            "name": "Thibault Viennot",
+            "age": 30,
+            "description": "Searching for someone who knows how to have fun while debugging"
+        },
+        {
+            "id": 18,
+            "name": "Pauline Chautard",
+            "age": 22,
+            "description": "I'm like a compiler, I can take your high-level needs and turn them into low-level satisfaction."
+        }
+    ]
+}
